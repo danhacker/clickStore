@@ -8,14 +8,20 @@ DSC.clickStore = function () {
   var settings = {
     immediatePost: true, 							//post as soon as a button is clicked
     periodicPost: false, 							//post at regular intervals
-    periodicPostInterval: 0, 							//millisecond interval to check for unposted clicks
+    periodicPostInterval: 0, 					//millisecond interval to check for unposted clicks
     post: {
-      URL: 'None', 								//the url to post click information to
-      treatFailAsSuccess: false 						//useful for debugging where the server action has yet to be written!
+      URL: 'None', 								    //the url to post click information to
+      treatFailAsSuccess: false 	    //useful for debugging where the server action has yet to be written!
     },
-    debug: false, 									//display console debug information
-    user: "unknown", 								//the currently logged in user to attribute click stats against
-    elements: {}	                                //the elements on which to track clicks
+    debug: {
+      showDebugInfo: false, 				  //display console debug information
+      preventDefaultAction: false     //whilst debugging, prevent button clicks from following their default action  
+    },
+    user: "unknown", 								  //the currently logged in user to attribute click stats against
+    elements: {},                     //the elements on which to track clicks
+    ignoreElements: {},               //list of elements to ignore
+    elementContainerTag: '',          //a user-defined data-value attribute to store against each click
+    elementFriendlyName: ''           //a user defined data-value attribute used to store a reportable friendly name
   },
 	storage = window.sessionStorage; 					//shorthand for windows.sesssionStorage
 
@@ -27,7 +33,12 @@ DSC.clickStore = function () {
       setInterval(postAll, settings.periodicPostInterval);
     }
 
-    settings.elements
+    _debug('monitor elements:');
+    _debug(settings.elements);
+    _debug('ignore elements:');
+    _debug(settings.ignoreElements);
+
+    settings.elements.not(settings.ignoreElements)
 			.click(function (e) {
 			  _debug(e);
 
@@ -66,19 +77,23 @@ DSC.clickStore = function () {
   //place a clickState object in sessionStorage
 	_storeItem = function (obj, user) {
 
+	  //identify the tag in which this element resides
+	  var containerTag = obj.closest('[' + settings.elementContainerTag + ']'),
+
 	  //build the storage object    
-	  var btnInfo = {
-	    clickStore: true,
-	    posted: false,
-	    userAgent: navigator.userAgent,
-	    user: user,
-	    window: window.location.href,
-	    id: obj.prop('id'),
-	    text: obj.text() || obj.val(),
-	    friendlyName: obj.attr('data_friendlyname') || '',
-	    href: obj.attr('href') || '',
-	    clickCount: 0
-	  }
+	    btnInfo = {
+	      clickStore: true,
+	      posted: false,
+	      userAgent: navigator.userAgent,
+	      user: user,
+	      window: window.location.href,
+	      id: obj.prop('id'),
+	      text: obj.text() || obj.val(),
+	      href: obj.attr('href') || '',
+        friendlyName: obj.attr(settings.elementFriendlyName) || '',
+	      tag: containerTag.attr(settings.elementContainerTag) || '',
+	      clickCount: 0
+	    }
 
 	  _debug('storeItem:' + JSON.stringify(btnInfo));
 
