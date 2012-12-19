@@ -6,22 +6,23 @@ DSC.clickStore = function () {
 
   //function settings
   var settings = {
-    immediatePost: true, 							//post as soon as a button is clicked
-    periodicPost: false, 							//post at regular intervals
-    periodicPostInterval: 0, 					//millisecond interval to check for unposted clicks
+    immediatePost: true, 							    //post as soon as a button is clicked
+    periodicPost: false, 							    //post at regular intervals
+    periodicPostInterval: 0, 					    //millisecond interval to check for unposted clicks
     post: {
-      URL: 'None', 								    //the url to post click information to
-      treatFailAsSuccess: false 	    //useful for debugging where the server action has yet to be written!
+      URL: 'None', 								        //the url to post click information to
+      treatFailAsSuccess: false, 	        //useful for debugging where the server action has yet to be written!
+      resetClickAfterSuccessfulPost: true //Whether to reset the clickCount back to 0 after a successful post
     },
     debug: {
-      showDebugInfo: false, 				  //display console debug information
-      preventDefaultAction: false     //whilst debugging, prevent button clicks from following their default action  
+      showDebugInfo: false, 				      //display console debug information
+      preventDefaultAction: false         //whilst debugging, prevent button clicks from following their default action  
     },
-    user: "unknown", 								  //the currently logged in user to attribute click stats against
-    elements: {},                     //the elements on which to track clicks
-    ignoreElements: {},               //list of elements to ignore
-    elementContainerTag: '',          //a user-defined data-value attribute to store against each click
-    elementFriendlyName: ''           //a user defined data-value attribute used to store a reportable friendly name
+    user: "unknown", 								      //the currently logged in user to attribute click stats against
+    elements: {},                         //the elements on which to track clicks
+    ignoreElements: {},                   //list of elements to ignore
+    elementContainerTag: '',              //a user-defined data-value attribute to store against each click
+    elementFriendlyName: '',               //a user defined data-value attribute used to store a reportable friendly name
   },
 	storage = window.sessionStorage; 					//shorthand for windows.sesssionStorage
 
@@ -33,24 +34,21 @@ DSC.clickStore = function () {
       setInterval(postAll, settings.periodicPostInterval);
     }
 
-    _debug('monitor elements:');
+    _debug('elements:');
     _debug(settings.elements);
     _debug('ignore elements:');
     _debug(settings.ignoreElements);
+    _debug('monitor elements:');
 
-    settings.elements.not(settings.ignoreElements)
+    var monitorElements = settings.elements.not(settings.ignoreElements)
+    _debug(monitorElements);
+
+    monitorElements
 			.click(function (e) {
-			  _debug(e);
-
-			  var $this = $(this),
-					obj = _storeItem($this, settings.user);
-
-			  if (settings.immediatePost) {
-			    _postSingle(obj);
-			  }
+        _recordClick($(e.currentTarget));
 			});
 
-    if (settings.debug) {
+    if (settings.debug.showDebugInfo) {
       //Add a debug button to initiate a POST
       //$('.navbar-inner').append('<input type="button" id="submitClickStats" value="Submit Click Stats" />');
       $('body').prepend('<input type="button" id="submitClickStats" value="Submit Click Stats" />');
@@ -60,18 +58,37 @@ DSC.clickStore = function () {
     }
   },
 
+  _recordClick = function(e){
+    _debug(e);
+    
+    var $this = $(e),
+        obj = _storeItem($this, settings.user);
+  
+    if (settings.immediatePost) {
+      //_postSingle(obj);
+      _postAll();
+    }
+  },
+
   //return the sessionStorage key for a given object
 	_getStorageKey = function (obj) {
 	  _debug(' - getStorageKey');
-	  return obj.user + '-' + obj.window + '_' + obj.id + '_' + (obj.text || obj.friendlyName);
+	  return (obj.user || 'unknown') + '-' + obj.window + '_' + obj.id + '_' + (obj.text || obj.friendlyName);
 	},
 
   //return a json object from sessionStorage based on the provided index
 	_getObj = function (i) {
 	  var key = storage.key(i),
 			itemString = storage.getItem(key);
+
 	  _debug(' - getObj: ' + itemString);
-	  return $.parseJSON(itemString);
+
+    try{
+	    return $.parseJSON(itemString);
+    }
+    catch (err){
+      return {};
+    }
 	},
 
   //place a clickState object in sessionStorage
@@ -84,15 +101,15 @@ DSC.clickStore = function () {
 	    btnInfo = {
 	      clickStore: true,
 	      posted: false,
-	      userAgent: navigator.userAgent,
-	      user: user,
-	      window: window.location.href,
-	      id: obj.prop('id'),
-	      text: obj.text() || obj.val(),
+	      userAgent: navigator.userAgent || '',
+	      user: user || '',
+	      window: window.location.href || '',
+	      id: obj.prop('id') || '',
+	      text: (obj.text() || obj.val()).trim() || '',
 	      href: obj.attr('href') || '',
-        friendlyName: obj.attr(settings.elementFriendlyName) || '',
-	      tag: containerTag.attr(settings.elementContainerTag) || '',
-	      clickCount: 0
+	      friendlyName: obj.attr(settings.elementFriendlyName) || '',
+	      tag: containerTag.attr(settings.elementContainerTag) || ''
+	      //clickCount: 0
 	    }
 
 	  _debug('storeItem:' + JSON.stringify(btnInfo));
@@ -110,52 +127,52 @@ DSC.clickStore = function () {
 	},
 
   //post a single clickState object to the server
-	_postSingle = function (obj) {
-	  var jsonObj = JSON.stringify(obj);
-	  _debug('postSingle:' + JSON.stringify(jsonObj));
+  	_postSingle = function (obj) {
+  	  var jsonObj = JSON.stringify(obj);
+  	  _debug('postSingle:' + JSON.stringify(jsonObj));
 
-	  $.ajax({
-	    url: settings.post.URL,
-	    data: { CLICK_INFO: jsonObj },
-	    type: 'POST',
-	    success: function () {
-	      _debug('POST success');
-	      _markItemAsPosted(obj);
-	    },
-	    error: function () {
-	      _debug('POST fail');
-	      if (settings.post.treatFailAsSuccess) {
-	        _debug(' - treating fail as Success...');
-	        _markItemAsPosted(obj);
-	      }
-	    }
-	  });
-	},
+  	  $.ajax({
+  	    url: settings.post.URL,
+  	    data: { CLICK_INFO: jsonObj },
+  	    type: 'POST',
+  	    success: function () {
+  	      _debug('POST success');
+  	      _markItemAsPosted(obj);
+  	    },
+  	    error: function () {
+  	      _debug('POST fail');
+  	      if (settings.post.treatFailAsSuccess) {
+  	        _debug(' - treating fail as Success...');
+  	        _markItemAsPosted(obj);
+  	      }
+  	    }
+  	  });
+  	},
 
   //post all known clickState objects to the server
-	_postAll = function (items) {
+	_postAll = function () {
 	  _debug('postAll');
 
 	  //build an array of objects to post
 	  var localStore = [];
 
 	  for (var i = 0; i < storage.length; i++) {
+    
 	    var obj = _getObj(i);
 	    //only post clickState items that are marked as 'clickStore',
 	    //and not posted (we don't want to post the same details over and over);
 	    if (_isClickStore(obj) && !_isPosted(obj)) {
-	      localStore.push(JSON.stringify(obj));
+	      localStore.push(obj);
 	    }
 	  }
+
 	  //before POSTing, check that we actually have something to POST
 	  if (localStore.length > 0) {
-
 	    _debug(' - SUBMITTING:');
 	    _debug(JSON.stringify(localStore));
-
 	    $.ajax({
 	      url: settings.post.URL,
-	      data: JSON.stringify(localStore),
+        data: { CLICK_INFO: JSON.stringify(localStore) },
 	      type: 'POST',
 	      success: function () {
 	        _debug(' - POST success');
@@ -177,7 +194,7 @@ DSC.clickStore = function () {
 
   //display debug information
 	_debug = function (msg) {
-	  if (settings.debug) {
+	  if (settings.debug.showDebugInfo) {
 	    if (typeof console == "object") {
 	      console.info(msg);
 	    }
@@ -190,7 +207,7 @@ DSC.clickStore = function () {
 	  _debug('markAllItemsAsPosted');
 	  //update storage to mark posted items as posted   
 	  for (var i = 0; i < storage.length; i++) {
-	    var obj = _getObj(a);
+	    var obj = _getObj(i);
 	    _markItemAsPosted(obj);
 	  }
 	},
@@ -198,19 +215,22 @@ DSC.clickStore = function () {
   //mark the supplied object as posted. This is to prevent this object being submitted
   //again, unless it has changed
 	_markItemAsPosted = function (obj) {
-	  //remove the object from sessionState first
-	  _removeObj(obj);
-	  _debug(' - marking obj as posted');
-	  //update the posted attribute
-	  obj.posted = true;
-	  obj.clickCount = 0;
-	  //re-store the object in sessionState
-	  _storeObj(obj);
+	    //remove the object from sessionState first
+	    _removeObj(obj);
+	    _debug(' - marking obj as posted');
+	    //update the posted attribute
+	    obj.posted = true;
+
+	    if (settings.post.resetClickAfterSuccessfulPost) {
+	      _debug(' - resetting click count');
+	      obj.clickCount = 0;
+    }
 	},
 
   //remove the given object from sessionState
 	_removeObj = function (obj) {
 	  _debug(' - removeObj');
+    
 	  var key = _getStorageKey(obj);
 	  storage.removeItem(key);
 	},
@@ -226,7 +246,7 @@ DSC.clickStore = function () {
   //(note that other objects may be stored in sessionStorage and we're not interested in them!)
 	_isClickStore = function (obj) {
 	  try {
-	    _debug(' - isClickStore: ' + obj.clickStore);
+	    _debug(' - isClickStore: ' + obj.clickStore == true);
 	    return obj.clickStore == true;
 	  }
 	  catch (err) {
@@ -239,7 +259,7 @@ DSC.clickStore = function () {
   //note that changes to clickStore objects (via _storeItem) cause posted to be false
 	_isPosted = function (obj) {
 	  try {
-	    _debug(' - isPosted: ' + obj.posted);
+	    _debug(' - isPosted: ' + obj.posted == true);
 	    return obj.posted == true;
 	  }
 	  catch (err) {
@@ -249,6 +269,7 @@ DSC.clickStore = function () {
 	}
 
   return {
-    init: _init
+    init: _init,
+    recordClick: _recordClick
   }
 } ();
