@@ -1,0 +1,7 @@
+ToDo:
+
+Remove objects from session Storage after successful post
+markItemAsPOsted - check that the storage object is a clickStore Object
+check that the result is TRUE after an ajax post, before running 'success' actions. Atm a 'successful response' is currently enough, even if the response is actially 'false'
+when ajax submitting clickstore data when attempting to change page (href) clickstore does not complete
+dynamic binding and _recordClick public method not working
