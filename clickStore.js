@@ -1,8 +1,8 @@
 //DSC NameSpace
-;var DSC = DSC || {};
+;var DanH = DanH || {};
 
-//execute clickStore in the DSC namespace - reduces global namespace pollution
-DSC.clickStore = function () {
+//execute clickStore in the DanH namespace - reduces global namespace pollution
+DanH.clickStore = function () {
 
   //function settings
 	var settings = {
@@ -146,10 +146,20 @@ DSC.clickStore = function () {
 			url: settings.post.URL,
 			data: data,
 			type: 'POST',
-			success: function () {
-				_debug('Ajax Success');
-				if (typeof(success) == 'function'){
-					success();
+			success: function (result) {
+				if (result.toLowerCase = 'true'){
+					_debug('Ajax Success');
+					if (typeof(success) == 'function'){
+						success();
+					}
+				} 
+				else {
+					if (settings.debug.treatFailAsSuccess && typeof(success) == 'function'){
+						success();
+					}
+					else if (typeof(fail) == 'function'){
+						fail();
+					}
 				}
 			},
 			error: function () {
