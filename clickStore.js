@@ -21,7 +21,7 @@ DanH.clickStore = function () {
 		elements: {},                       //the elements on which to track clicks
 		ignoreElements: {},                 //list of elements to ignore
 		elementContainerTag: '',            //a user-defined data-value attribute to store against each click
-		elementFriendlyName: '',            //a user defined data-value attribute used to store a reportable friendly name
+		elementFriendlyName: ''             //a user defined data-value attribute used to store a reportable friendly name
 	},
 	storage = window.sessionStorage; 		//shorthand for windows.sesssionStorage
 
