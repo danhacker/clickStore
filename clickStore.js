@@ -10,7 +10,7 @@ DanH.clickStore = function () {
 		periodicPost: false, 				//post at regular intervals
 		periodicPostInterval: 0, 			//millisecond interval to check for unposted clicks
 		post: {
-			URL: 'None', 					//the url to post click information to
+			URL: 'None' 					//the url to post click information to
 		},
 		debug: {
 			showDebugInfo: false, 			//display console debug information
